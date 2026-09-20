@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras para barbearias (leitura pública para informações do biosite)
+    match /barbershops/{barbershopId} {
+      allow read: if true;
+      allow write: if false; // Gerenciado por administradores/backend
+
+      // Subcoleção de disponibilidade pública (apenas slotKey, date, time, status)
+      // Garante que visitantes vejam quais horários estão ocupados SEM expor dados de clientes!
+      match /publicAvailability/{slotKey} {
+        allow read: if true;
+        allow create, update: if request.resource.data.status in ['occupied', 'available']
+                                 && request.resource.data.barbershopId == barbershopId;
+        allow delete: if false;
+      }
+
+      // Subcoleção de agendamentos completos (dados do cliente)
+      match /appointments/{appointmentId} {
+        // Leitura restrita (não expõe lista pública com dados dos clientes)
+        allow read: if false;
+        // Permite criação de agendamento válido
+        allow create: if request.resource.data.barbershopId == barbershopId
+                      && request.resource.data.customerName is string
+                      && request.resource.data.customerName.size() >= 2
+                      && request.resource.data.customerPhone is string
+                      && request.resource.data.slotKey is string;
+        allow update, delete: if false;
+      }
+
+      // Eventos de agendamento preparados para o backend / Cloud Functions / FCM Push
+      match /appointmentEvents/{eventId} {
+        allow read: if false;
+        allow create: if request.resource.data.barbershopId == barbershopId;
+        allow update, delete: if false;
+      }
+    }
+
+    // Compatibilidade com coleções na raiz se utilizadas com barbershopId
+    match /publicAvailability/{slotKey} {
+      allow read: if true;
+      allow create, update: if request.resource.data.status in ['occupied', 'available'];
+      allow delete: if false;
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if false;
+      allow create: if request.resource.data.customerName is string
+                    && request.resource.data.slotKey is string;
+      allow update, delete: if false;
+    }
+
+    match /appointmentEvents/{eventId} {
+      allow read: if false;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}

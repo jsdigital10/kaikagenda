@@ -1,0 +1,6 @@
+{
+  "name": "Barbearia Agendamento Online",
+  "description": "Agendamento online cinematográfico para barbearia com integração em tempo real e WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
